@@ -180,6 +180,10 @@ app.post('/api/send-application', upload.fields([
       </div>
     `;
 
+    // 🔍 DEBUG : Vérifier les variables d'environnement juste avant l'envoi
+    console.log('📧 EMAIL_USER:', process.env.EMAIL_USER);
+    console.log('🔑 EMAIL_PASS présent ?', !!process.env.EMAIL_PASS);
+
     // Envoyer email
     const mailOptions = {
       from: `"Recrutement ICS-benin" <${process.env.EMAIL_USER}>`,
