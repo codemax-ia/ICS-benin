@@ -1,36 +1,33 @@
-// server.js — Optimisé pour Render.com
+// server.js — Optimisé pour Render.com avec Resend
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
-const nodemailer = require('nodemailer');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const { Resend } = require('resend'); // ✅ Resend au lieu de Nodemailer
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ CORS simplifié pour le web public (Render + GitHub Pages)
-app.use(cors({
-  origin: '*',
-  credentials: true
-}));
+// Initialiser Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ✅ CORS simplifié
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Créer dossier uploads si n'existe pas
+// Dossier uploads
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configuration Multer
+// Multer
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     const uniqueName = `${Date.now()}-${uuidv4().substring(0, 8)}${ext}`;
@@ -39,43 +36,20 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'photo' && !file.mimetype.startsWith('image/')) {
-      return cb(new Error('La photo doit être une image (jpg, png, etc.)'), false);
+      return cb(new Error('La photo doit être une image'), false);
     }
     if ((file.fieldname === 'cv' || file.fieldname === 'certificats') && file.mimetype !== 'application/pdf') {
-      return cb(new Error('Les documents doivent être en format PDF'), false);
+      return cb(new Error('Les documents doivent être en PDF'), false);
     }
     cb(null, true);
   }
 });
 
-// Configuration Nodemailer
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: true
-  }
-});
-
-// Vérifier la connexion SMTP au démarrage
-transporter.verify((error, success) => {
-  if (error) {
-    console.log('❌ Erreur SMTP:', error.message);
-  } else {
-    console.log('✅ SMTP prêt — emails activés');
-  }
-});
-
-// Route principale d'envoi de candidature
+// Route principale
 app.post('/api/send-application', upload.fields([
   { name: 'photo', maxCount: 1 },
   { name: 'cv', maxCount: 1 },
@@ -94,20 +68,15 @@ app.post('/api/send-application', upload.fields([
       metier = ''
     } = req.body;
 
-    // Validation
     if (!nom.trim() || !prenom.trim() || !metier.trim()) {
       cleanupFiles(req);
-      return res.status(400).json({
-        success: false,
-        message: 'Champs obligatoires manquants'
-      });
+      return res.status(400).json({ success: false, message: 'Champs obligatoires manquants' });
     }
 
     // Préparer pièces jointes
     const attachments = [];
     let photoCid = null;
 
-    // Photo
     if (req.files['photo']?.[0]) {
       const photoFile = req.files['photo'][0];
       photoCid = 'photo@application';
@@ -118,7 +87,6 @@ app.post('/api/send-application', upload.fields([
       });
     }
 
-    // CV
     if (req.files['cv']?.[0]) {
       const cvFile = req.files['cv'][0];
       attachments.push({
@@ -127,7 +95,6 @@ app.post('/api/send-application', upload.fields([
       });
     }
 
-    // Certificats
     if (req.files['certificats']) {
       req.files['certificats'].forEach((file, index) => {
         attachments.push({
@@ -137,7 +104,13 @@ app.post('/api/send-application', upload.fields([
       });
     }
 
-    // Email HTML
+    // Téléphone propre
+    const cleanPhone = telephone ? telephone.replace(/\D/g, '') : '';
+    const fullInternationalNumber = telephone?.startsWith('+') 
+      ? telephone 
+      : (cleanPhone ? `+${cleanPhone}` : '');
+
+    // HTML
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #eee; background: #f9f9f9;">
         <div style="background: #002147; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -152,24 +125,47 @@ app.post('/api/send-application', upload.fields([
           <p><strong>Téléphone:</strong> ${telephone || 'Non spécifié'}</p>
           <p><strong>Poste:</strong> ${metier || 'Non spécifié'}</p>
           ${photoCid ? `<img src="cid:${photoCid}" alt="Photo" style="max-width: 300px; margin: 20px 0; border-radius: 8px;">` : ''}
+          ${telephone && telephone.trim() ? `
+            <div style="margin: 25px 0; text-align: center;">
+              <a href="tel:${encodeURIComponent(fullInternationalNumber)}" 
+                 style="display: inline-block; background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                📞 Appeler
+              </a>
+              <a href="https://wa.me/${cleanPhone}" 
+                 target="_blank"
+                 style="display: inline-block; background: #25D366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                💬 WhatsApp
+              </a>
+            </div>
+          ` : ''}
           <p><em>Envoyé le ${new Date().toLocaleString('fr-FR')}</em></p>
         </div>
       </div>
     `;
 
-    // Envoyer email
-    const mailOptions = {
-      from: `"Recrutement ICS-benin" <${process.env.EMAIL_USER}>`,
-      to: 'codemaxia@gmail.com',
+    // 🔁 Convertir les fichiers en base64 pour Resend
+    const attachmentsForResend = attachments.map(file => ({
+      filename: path.basename(file.path),
+      content: fs.readFileSync(file.path, { encoding: 'base64' }),
+    }));
+
+    // ✅ Envoi via Resend
+    const { data, error } = await resend.emails.send({
+      from: 'Recrutement ICS-benin <onboarding@resend.dev>', // ✅ Autorisé sans vérification
+      to: process.env.EMAIL_TO || 'icsbenin01@gmail.com',
       subject: `🚢 Candidature: ${prenom} ${nom} - ${metier}`,
       html: htmlContent,
-      attachments: attachments
-    };
+      attachments: attachmentsForResend,
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) {
+      console.error('❌ Erreur Resend:', error);
+      cleanupFiles(req);
+      return res.status(500).json({ success: false, message: 'Échec envoi email' });
+    }
+
     cleanupFiles(req);
-
-    console.log('✅ Email envoyé avec succès');
+    console.log('✅ Email envoyé avec succès via Resend');
     res.json({ success: true, message: 'Candidature envoyée !' });
 
   } catch (error) {
@@ -179,7 +175,7 @@ app.post('/api/send-application', upload.fields([
   }
 });
 
-// Fonction de nettoyage
+// Nettoyage
 function cleanupFiles(req) {
   if (!req.files) return;
   Object.values(req.files).flat().forEach(file => {
@@ -200,8 +196,10 @@ app.use((error, req, res, next) => {
   res.status(400).json({ success: false, message: error.message });
 });
 
-// Démarrer serveur
+// Démarrage
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`);
-  console.log(`📨 Envoi vers: codemaxia@gmail.com`);
+  console.log(`📨 Envoi vers: ${process.env.EMAIL_TO || 'icsbenin01@gmail.com'}`);
+console.log(`📨 Envoi vers: 11111111111111111111111111`);
+
 });
