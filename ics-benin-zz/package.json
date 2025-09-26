@@ -1,6 +1,6 @@
 {
   "name": "recrutement-marins",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Serveur pour recrutement marins",
   "main": "server.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "dev": "nodemon server.js"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=22.0.0 <23.0.0"
   },
   "dependencies": {
     "cors": "^2.8.5",
