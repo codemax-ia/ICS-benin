@@ -160,7 +160,7 @@ app.post('/api/send-application', upload.fields([
     // Envoyer email
     const mailOptions = {
       from: `"Recrutement ICS-benin" <${process.env.EMAIL_USER}>`,
-      to: 'codemaxia@gmail.com',
+      to: 'icsbenin01@gmail.com',
       subject: `🚢 Candidature: ${prenom} ${nom} - ${metier}`,
       html: htmlContent,
       attachments: attachments
