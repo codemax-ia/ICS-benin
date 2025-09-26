@@ -137,7 +137,13 @@ app.post('/api/send-application', upload.fields([
       });
     }
 
-    // Email HTML
+    // Nettoyer le numéro de téléphone : garder uniquement les chiffres après le +
+    const cleanPhone = telephone ? telephone.replace(/\D/g, '') : '';
+    const fullInternationalNumber = telephone?.startsWith('+') 
+      ? telephone 
+      : (cleanPhone ? `+${cleanPhone}` : '');
+
+    // Email HTML avec boutons Appeler et WhatsApp
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #eee; background: #f9f9f9;">
         <div style="background: #002147; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -151,7 +157,24 @@ app.post('/api/send-application', upload.fields([
           <p><strong>Âge:</strong> ${age || 'Non spécifié'} ans</p>
           <p><strong>Téléphone:</strong> ${telephone || 'Non spécifié'}</p>
           <p><strong>Poste:</strong> ${metier || 'Non spécifié'}</p>
+
           ${photoCid ? `<img src="cid:${photoCid}" alt="Photo" style="max-width: 300px; margin: 20px 0; border-radius: 8px;">` : ''}
+
+          <!-- Boutons d'action -->
+          ${telephone && telephone.trim() ? `
+            <div style="margin: 25px 0; text-align: center;">
+              <a href="tel:${encodeURIComponent(fullInternationalNumber)}" 
+                 style="display: inline-block; background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                📞 Appeler
+              </a>
+              <a href="https://wa.me/${cleanPhone}" 
+                 target="_blank"
+                 style="display: inline-block; background: #25D366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                💬 WhatsApp
+              </a>
+            </div>
+          ` : ''}
+
           <p><em>Envoyé le ${new Date().toLocaleString('fr-FR')}</em></p>
         </div>
       </div>
