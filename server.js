@@ -1,4 +1,4 @@
-// server.js — Optimisé pour Render.com avec Resend + design pro
+// server.js — Optimisé pour Render.com avec Resend + design pro (photo en haut)
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 // Initialiser Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ✅ CORS
+// CORS
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -110,63 +110,61 @@ app.post('/api/send-application', upload.fields([
       ? telephone 
       : (cleanPhone ? `+${cleanPhone}` : '');
 
-    // ✨ HTML PROFESSIONNEL
+    // ✨ HTML PROFESSIONNEL — PHOTO EN HAUT, RESPONSIVE
     const htmlContent = `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 700px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-        <div style="background: linear-gradient(135deg, #002147, #003f88); color: white; padding: 24px 20px; text-align: center;">
-          <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 0.5px;">🚢 NOUVELLE CANDIDATURE MARIN</h1>
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        <div style="background: linear-gradient(135deg, #002147, #003f88); color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px;">🚢 CANDIDATURE MARIN</h1>
         </div>
-        <div style="padding: 30px; background: #fafafa;">
-          <h2 style="color: #003a66; font-size: 18px; margin-top: 0; border-bottom: 2px solid #eaeaea; padding-bottom: 10px;">
-            📋 Informations du Candidat
-          </h2>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; font-size: 15px;">
-            <div><strong>Nom complet :</strong> ${prenom} ${nom}</div>
-            <div><strong>Nationalité :</strong> ${nationalite || '—'}</div>
-            <div><strong>Âge :</strong> ${age || 'Non spécifié'} ans</div>
-            <div><strong>Situation :</strong> ${situation_matrimoniale || 'Non spécifiée'}</div>
-            <div><strong>Poste visé :</strong> ${metier || '—'}</div>
-            <div><strong>Téléphone :</strong> ${telephone || '—'}</div>
+        ${photoCid ? `
+          <div style="text-align: center; padding: 20px; background: #f8f9fa; border-bottom: 1px solid #e9ecef;">
+            <div style="display: inline-block; border: 3px solid #e0e7ff; border-radius: 12px; padding: 6px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+              <img src="cid:${photoCid}" alt="Photo du candidat" 
+                   style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; display: block;"
+                   onerror="this.style.display='none'">
+            </div>
+            <p style="font-size: 12px; color: #6c757d; margin-top: 8px; font-style: italic;">Photo du candidat</p>
           </div>
-          ${photoCid ? `
-            <div style="text-align: center; margin: 20px 0;">
-              <div style="display: inline-block; border: 3px solid #e0e7ff; border-radius: 12px; padding: 4px; background: white;">
-                <img src="cid:${photoCid}" alt="Photo du candidat" 
-                     style="width: 180px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); display: block;"
-                     onerror="this.style.display='none'">
-              </div>
-              <p style="font-size: 13px; color: #666; margin-top: 8px; font-style: italic;">(Photo du candidat)</p>
-            </div>
-          ` : ''}
+        ` : ''}
+        <div style="padding: 20px; background: #fafafa;">
+          <h2 style="color: #003a66; font-size: 16px; margin-top: 0; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+            <span>📋</span> Informations du Candidat
+          </h2>
+          <div style="margin: 15px 0; line-height: 1.6; font-size: 14px; color: #333;">
+            <p><strong>👤 Nom complet :</strong> ${prenom} ${nom}</p>
+            <p><strong>🌍 Nationalité :</strong> ${nationalite || '—'}</p>
+            <p><strong>🎂 Âge :</strong> ${age || 'Non spécifié'} ans</p>
+            <p><strong>💍 Situation :</strong> ${situation_matrimoniale || 'Non spécifiée'}</p>
+            <p><strong>💼 Poste visé :</strong> ${metier || '—'}</p>
+            <p><strong>📞 Téléphone :</strong> ${telephone || '—'}</p>
+          </div>
           ${telephone && telephone.trim() ? `
-            <div style="text-align: center; margin: 25px 0;">
-              <div style="display: inline-flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
-                <a href="tel:${encodeURIComponent(fullInternationalNumber)}" 
-                   style="display: inline-block; background: #27ae60; color: white; text-decoration: none; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-size: 15px; box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3); min-width: 140px; text-align: center;">
-                  📞 Appeler
-                </a>
-                <a href="https://wa.me/${cleanPhone}" 
-                   target="_blank"
-                   style="display: inline-block; background: #25D366; color: white; text-decoration: none; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-size: 15px; box-shadow: 0 3px 10px rgba(37, 211, 102, 0.3); min-width: 140px; text-align: center;">
-                  💬 WhatsApp
-                </a>
-              </div>
+            <div style="text-align: center; margin: 20px 0; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+              <a href="tel:${encodeURIComponent(fullInternationalNumber)}" 
+                 style="flex: 1; min-width: 120px; display: inline-block; background: #27ae60; color: white; text-decoration: none; padding: 10px 16px; border-radius: 50px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 6px rgba(39, 174, 96, 0.2); text-align: center;">
+                📞 Appeler
+              </a>
+              <a href="https://wa.me/${cleanPhone}" 
+                 target="_blank"
+                 style="flex: 1; min-width: 120px; display: inline-block; background: #25D366; color: white; text-decoration: none; padding: 10px 16px; border-radius: 50px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 6px rgba(37, 211, 102, 0.2); text-align: center;">
+                💬 WhatsApp
+              </a>
             </div>
           ` : ''}
-          <div style="text-align: right; margin-top: 25px; padding-top: 15px; border-top: 1px dashed #ddd; color: #777; font-size: 13px;">
-            <em>📩 Reçu le ${new Date().toLocaleString('fr-FR')}</em>
+          <div style="text-align: right; margin-top: 20px; padding-top: 12px; border-top: 1px dashed #ddd; color: #777; font-size: 12px; font-style: italic;">
+            📩 Reçu le ${new Date().toLocaleString('fr-FR')}
           </div>
         </div>
       </div>
     `;
 
-    // Convertir pièces jointes en base64
+    // Convertir pièces jointes en base64 pour Resend
     const attachmentsForResend = attachments.map(file => ({
       filename: path.basename(file.path),
       content: fs.readFileSync(file.path, { encoding: 'base64' }),
     }));
 
-    // ✅ Envoi à icsbenin01@gmail.com (ton email Resend)
+    // Envoi via Resend → à ton email Resend
     const { data, error } = await resend.emails.send({
       from: 'Recrutement ICS-benin <onboarding@resend.dev>',
       to: 'icsbenin01@gmail.com',
@@ -192,7 +190,7 @@ app.post('/api/send-application', upload.fields([
   }
 });
 
-// Nettoyage
+// Fonction de nettoyage
 function cleanupFiles(req) {
   if (!req.files) return;
   Object.values(req.files).flat().forEach(file => {
@@ -217,4 +215,6 @@ app.use((error, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`);
   console.log(`📨 Emails envoyés à : icsbenin01@gmail.com`);
-});
+   console.log(`333333333333333333333333333333333`);
+});/ /   r e f r e s h   0 9 / 2 7 / 2 0 2 5   0 3 : 4 3 : 3 7  
+ 
